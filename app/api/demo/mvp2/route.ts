@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getGovernedStatus, applyGovernedRole, removeGovernedRole,
   listMembersWithProtection, listContentTypes, listRoles, addUser, removeUser,
+  applyGovernedToAllSpaces, removeGovernedFromAllSpaces,
 } from "@/lib/demo/operations";
 
 function guard(): NextResponse | null {
@@ -34,6 +35,8 @@ export async function POST(req: NextRequest) {
       case "removeGoverned": return NextResponse.json(await removeGovernedRole(b.spaceId));
       case "addUser": return NextResponse.json(await addUser(b.spaceId, b.email, b.roleId));
       case "removeUser": return NextResponse.json(await removeUser(b.spaceId, b.membershipId));
+      case "applyGovernedAll": return NextResponse.json(await applyGovernedToAllSpaces(b.contentTypeId || "post", b.denyAction ?? "edit"));
+      case "removeGovernedAll": return NextResponse.json(await removeGovernedFromAllSpaces());
       default: return NextResponse.json({ error: "unknown action" }, { status: 422 });
     }
   } catch (e) {

@@ -203,3 +203,36 @@ export async function removeUser(spaceId: string, membershipId: string): Promise
   await cfSend("DELETE", `/spaces/${spaceId}/space_memberships/${membershipId}`, undefined, { "X-Contentful-Version": String(m.sys.version) });
   return { removed: true };
 }
+
+// ---------- MVP 2 at scale: apply / remove the governed role across ALL spaces ----------
+
+export interface BulkResult { total: number; ok: number; failed: number; migrated: number; restored: number; errors: { spaceId: string; error: string }[] }
+
+export async function applyGovernedToAllSpaces(contentTypeId: string, action: "edit" | "publish" = "edit"): Promise<BulkResult> {
+  const spaces = await listAllSpaces();
+  const rows = await pmap(spaces, async (s) => {
+    try { const r = await applyGovernedRole(s.id, contentTypeId, action); return { ok: true, migrated: r.migrated.length, spaceId: s.id }; }
+    catch (e) { return { ok: false, spaceId: s.id, error: (e as Error).message }; }
+  }, 4);
+  return summarize(rows, "migrated");
+}
+
+export async function removeGovernedFromAllSpaces(): Promise<BulkResult> {
+  const spaces = await listAllSpaces();
+  const rows = await pmap(spaces, async (s) => {
+    try { const r = await removeGovernedRole(s.id); return { ok: true, restored: r.restored.length, spaceId: s.id }; }
+    catch (e) { return { ok: false, spaceId: s.id, error: (e as Error).message }; }
+  }, 4);
+  return summarize(rows, "restored");
+}
+
+function summarize(rows: { ok: boolean; spaceId: string; migrated?: number; restored?: number; error?: string }[], countKey: "migrated" | "restored"): BulkResult {
+  return {
+    total: rows.length,
+    ok: rows.filter((r) => r.ok).length,
+    failed: rows.filter((r) => !r.ok).length,
+    migrated: rows.reduce((n, r) => n + (r.migrated ?? 0), 0),
+    restored: rows.reduce((n, r) => n + (r.restored ?? 0), 0),
+    errors: rows.filter((r) => !r.ok).map((r) => ({ spaceId: r.spaceId, error: r.error ?? "" })).slice(0, 10),
+  };
+}

@@ -25,6 +25,9 @@ export default function Demo() {
   const [denyAction, setDenyAction] = useState("edit");
   const [email, setEmail] = useState("");
   const [addRole, setAddRole] = useState("");
+  const [bulkCt, setBulkCt] = useState("post");
+  const [bulkAction, setBulkAction] = useState("edit");
+  const [bulkOut, setBulkOut] = useState("");
 
   async function call(url: string, init?: RequestInit) {
     setErr("");
@@ -55,6 +58,8 @@ export default function Demo() {
   async function removeGoverned() { setBusy("remove"); try { await call("/api/demo/mvp2", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "removeGoverned", spaceId }) }); await loadSpace(spaceId); } finally { setBusy(""); } }
   async function addUser() { setBusy("add"); try { await call("/api/demo/mvp2", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "addUser", spaceId, email, roleId: addRole }) }); setEmail(""); await loadSpace(spaceId); } finally { setBusy(""); } }
   async function removeUser(membershipId: string) { setBusy("rm" + membershipId); try { await call("/api/demo/mvp2", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "removeUser", spaceId, membershipId }) }); await loadSpace(spaceId); } catch { /* err shown */ } finally { setBusy(""); } }
+  async function applyAll() { setBusy("applyAll"); setBulkOut("Running across all spaces… (may take ~1 min)"); try { const d = await call("/api/demo/mvp2", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "applyGovernedAll", contentTypeId: bulkCt, denyAction: bulkAction }) }); setBulkOut(JSON.stringify(d, null, 2)); if (spaceId) await loadSpace(spaceId); } catch { /* err shown */ } finally { setBusy(""); } }
+  async function removeAll() { setBusy("removeAll"); setBulkOut("Removing across all spaces…"); try { const d = await call("/api/demo/mvp2", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "removeGovernedAll" }) }); setBulkOut(JSON.stringify(d, null, 2)); if (spaceId) await loadSpace(spaceId); } catch { /* err shown */ } finally { setBusy(""); } }
 
   useEffect(() => { loadSpaces().catch(() => {}); }, []);
 
@@ -84,6 +89,22 @@ export default function Demo() {
 
       <section style={box}>
         <h2>MVP 2 — Governed Space Admin role + delegated users</h2>
+
+        <div style={{ background: "#fafafa", border: "1px dashed #bbb", borderRadius: 6, padding: 12, marginBottom: 16 }}>
+          <b>Bulk — all spaces (scale test)</b>
+          <div style={{ marginTop: 8 }}>
+            Deny{" "}
+            <select value={bulkAction} onChange={(e) => setBulkAction(e.target.value)}>
+              <option value="edit">edit</option><option value="publish">publish</option>
+            </select>{" on content type "}
+            <input value={bulkCt} onChange={(e) => setBulkCt(e.target.value)} style={{ width: 110 }} />{" "}
+            <button style={btn} onClick={applyAll} disabled={!!busy}>Apply governed to ALL spaces</button>
+            <button style={btn} onClick={removeAll} disabled={!!busy}>Remove from ALL spaces</button>
+          </div>
+          {bulkOut && <pre style={{ whiteSpace: "pre-wrap", marginTop: 8 }}>{bulkOut}</pre>}
+          <small style={{ color: "#888" }}>Empty spaces have no content types, so the deny is a no-op there — it still creates the role and migrates non-protected admins. Fully reversible with “Remove from ALL”.</small>
+        </div>
+
         <label>Space:{" "}
           <select value={spaceId} onChange={(e) => loadSpace(e.target.value)}>
             <option value="">— pick a space —</option>
