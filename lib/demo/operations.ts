@@ -5,7 +5,7 @@
 // Not wired into the product auth path — gated behind ENABLE_DEMO and intended for local
 // demos only. See app/api/demo/*.
 
-import { cfGet, cfSend } from "@/lib/cma/rest";
+import { cfGet, cfSend, pmap } from "@/lib/cma/rest";
 import { computeGovernedRole } from "@/lib/policy/compute-governed-role";
 import type { DenyPolicy } from "@/lib/policy/types";
 
@@ -29,17 +29,29 @@ export async function getProtectedUserIds(): Promise<string[]> {
 
 export interface SpaceTeamStatus { spaceId: string; spaceName: string; teamAttached: boolean; teamIsAdmin: boolean }
 
+async function listAllSpaces(): Promise<{ name: string; id: string }[]> {
+  const all: { name: string; id: string }[] = [];
+  let skip = 0;
+  for (;;) {
+    const page = await cfGet<{ total: number; items: { name: string; sys: { id: string } }[] }>(
+      `/organizations/${ORG()}/spaces?limit=100&skip=${skip}`,
+    );
+    all.push(...page.items.map((s) => ({ name: s.name, id: s.sys.id })));
+    skip += page.items.length;
+    if (skip >= page.total || page.items.length === 0) break;
+  }
+  return all;
+}
+
 export async function listSpacesWithTeamStatus(): Promise<SpaceTeamStatus[]> {
-  const spaces = await cfGet<{ items: { name: string; sys: { id: string } }[] }>(`/organizations/${ORG()}/spaces?limit=100`);
-  const out: SpaceTeamStatus[] = [];
-  for (const s of spaces.items) {
+  const spaces = await listAllSpaces();
+  return pmap(spaces, async (s) => {
     const tsm = await cfGet<{ items: { admin: boolean; sys: { team: { sys: { id: string } } } }[] }>(
-      `/spaces/${s.sys.id}/team_space_memberships`,
+      `/spaces/${s.id}/team_space_memberships`,
     );
     const match = tsm.items.find((m) => m.sys.team.sys.id === TEAM());
-    out.push({ spaceId: s.sys.id, spaceName: s.name, teamAttached: Boolean(match), teamIsAdmin: Boolean(match?.admin) });
-  }
-  return out;
+    return { spaceId: s.id, spaceName: s.name, teamAttached: Boolean(match), teamIsAdmin: Boolean(match?.admin) };
+  }, 6);
 }
 
 /** Ensure the protected team is attached as Admin on a space (idempotent). Returns the action taken. */
@@ -55,15 +67,13 @@ export async function ensureTeamAttached(spaceId: string): Promise<"already" | "
 
 export async function attachTeamToAllSpaces(): Promise<{ spaceId: string; result: string }[]> {
   const statuses = await listSpacesWithTeamStatus();
-  const results: { spaceId: string; result: string }[] = [];
-  for (const s of statuses) {
+  return pmap(statuses, async (s) => {
     try {
-      results.push({ spaceId: s.spaceId, result: await ensureTeamAttached(s.spaceId) });
+      return { spaceId: s.spaceId, result: await ensureTeamAttached(s.spaceId) };
     } catch (e) {
-      results.push({ spaceId: s.spaceId, result: `error: ${(e as Error).message}` });
+      return { spaceId: s.spaceId, result: `error: ${(e as Error).message}` };
     }
-  }
-  return results;
+  }, 6);
 }
 
 // ---------- MVP 2: governed role + members ----------
