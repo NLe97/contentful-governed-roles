@@ -1,0 +1,113 @@
+# Demo Guide
+
+This walks through demonstrating the two things the built-in Space Admin role can't do:
+**(1)** restrict specific content operations with deny rules, and **(2)** let a non-admin add
+users to a space. Both are proved directly against a live org with the probe scripts.
+
+## The gap (say this first)
+
+Contentful has two permission axes:
+- **Org** (Owner / Admin) — org settings; the governors.
+- **Space** roles — Space Admin is all-or-nothing and is the *only* space role that can add users.
+
+| Space role | Can add users | Supports deny rules |
+|---|---|---|
+| Built-in Space Admin | ✅ | ❌ |
+| Custom role | ❌ | ✅ |
+
+No native role does both. This tool bridges that: a **governed custom role** (deny rules) plus a
+**service-token bridge** that performs add-user on behalf of an allow-listed person.
+
+## Prerequisites
+
+1. `npm install`
+2. Fill `.env` (see `.env.example`). For the probes you only need `CF_SERVICE_TOKEN`
+   (an org-admin-scoped PAT — dev only, rotate after) and `CF_ORG_ID`.
+3. Use Node 20 (`nvm use`).
+
+Pick a **demo space** that has at least one content type. Note its space ID and one content
+type ID (e.g. `post`). You'll set these as `PROBE_*` env vars below.
+
+---
+
+## Part 1 — Deny rules actually enforce (Probe 1)
+
+**Claim:** we can stop a Space Admin from editing a specific content type while leaving the rest
+of their admin powers intact.
+
+```bash
+CF_SERVICE_TOKEN=$CF_SERVICE_TOKEN \
+PROBE_SPACE_ID=<demo-space-id> \
+PROBE_CONTENT_TYPE_ID=<content-type-id> \
+npx tsx scripts/probe-1-role-deny.ts
+```
+
+It prints a created **role ID** (a "Governed" custom role: full content/settings powers, minus
+`update` on the chosen content type).
+
+**Show it live:**
+1. In the Contentful web app → that space → **Settings → Users**, assign a test user to the new
+   governed role.
+2. Log in as that user (or use an incognito session). They can navigate and edit most content,
+   **but editing/saving an entry of the denied content type is blocked**.
+3. Contrast: they did **not** lose their other admin-style capabilities — this is surgical, not
+   the old all-or-nothing freeze.
+
+> Field-level note: the role can also deny specific fields (e.g. a JSON field) — see
+> `computeGovernedRole` and spec open question O2. Verify field-level denies in your CMA before
+> promising them.
+
+---
+
+## Part 2 — Delegated add-user without Space Admin (Probe 2)
+
+**Claim:** someone who is *not* a Space Admin can still add a user to the space, because the
+backend performs the write with the service token.
+
+```bash
+CF_SERVICE_TOKEN=$CF_SERVICE_TOKEN \
+PROBE_SPACE_ID=<demo-space-id> \
+PROBE_EMAIL=<test-user-email> \
+PROBE_ROLE_ID=<a-non-admin-role-id-in-that-space> \
+npx tsx scripts/probe-2-token-membership.ts
+```
+
+It prints a **membership ID**.
+
+**Show it live:** in **Settings → Users**, the invited user now appears under the chosen
+(non-admin) role — added without anyone holding Space Admin, and without granting Space Admin.
+
+---
+
+## Part 3 — The guardrail (protect org admins/owners)
+
+**Claim:** governed admins can manage members but can never remove org admins/owners or the
+protected team.
+
+- The enforcement logic is unit-tested: run `npm test` and point at
+  `tests/guardrails/protected.test.ts` and `tests/api/members-handler.test.ts` — a remove of a
+  protected identity is refused (403) and the service token is never called.
+- In the product, the protected set is derived **server-side** from the org's admin/owner
+  memberships (never trusted from the client), and the protected team comes from
+  `CF_PROTECTED_TEAM_ID`.
+- Live "detect-and-revert" on removals made directly in the Contentful UI is wired to a webhook
+  that currently **logs** the event (`PROTECTED_REMOVAL_DETECTED`); automatic re-add is a
+  documented follow-up.
+
+---
+
+## Part 4 (optional) — the web app UI
+
+`/console` (org admin: define a deny policy, apply the governed role to a space) and `/members`
+(allow-listed inviter: add a user) run via `npm run dev`. The sign-in flow uses **Contentful
+OAuth**, so you must first create a Contentful OAuth application and set `CF_OAUTH_CLIENT_ID` /
+`CF_OAUTH_REDIRECT_URI`. Until then, demo the core via Parts 1–2.
+
+---
+
+## Cleanup after a demo
+
+- Delete the probe membership: Settings → Users → remove the invited test user.
+- Delete the probe role: Settings → Roles & permissions → delete the "Governed" role
+  (reassign any users first).
+- Rotate `CF_SERVICE_TOKEN` when finished — it is a powerful org-admin token.
