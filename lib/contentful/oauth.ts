@@ -3,7 +3,7 @@ export function buildAuthorizeUrl(opts: { clientId: string; redirectUri: string 
     client_id: opts.clientId,
     redirect_uri: opts.redirectUri,
     response_type: "token",
-    scope: "content_management_read content_management_manage",
+    scope: "content_management_manage",
   });
   return `https://be.contentful.com/oauth/authorize?${p.toString()}`;
 }
