@@ -3,7 +3,7 @@ import {
   getGovernedStatus, applyGovernedRole, removeGovernedRole,
   listMembersWithProtection, listContentTypes, listRoles, addUser, removeUser,
   applyGovernedToAllSpaces, removeGovernedFromAllSpaces,
-} from "@/lib/demo/operations";
+} from "@/lib/console/operations";
 import { authorizeOrgAdmin } from "@/lib/auth/require-request";
 
 export async function GET(req: NextRequest) {

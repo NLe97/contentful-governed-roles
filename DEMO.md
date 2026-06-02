@@ -18,14 +18,14 @@ Contentful has two permission axes:
 No native role does both. This tool bridges that: a **governed custom role** (deny rules) plus a
 **service-token bridge** that performs add-user on behalf of an allow-listed person.
 
-## Easiest demo — the Governance Console (`/demo`)
+## Easiest demo — the Governance Console (`/console`)
 
 A web console drives **both MVPs** live. It's gated by **Contentful OAuth + Org Admin/Owner**.
 
 1. Set `CF_SERVICE_TOKEN`, `CF_ORG_ID`, `CF_PROTECTED_TEAM_ID` in `.env`.
 2. `npm run dev`, open **http://localhost:3000/** → **Sign in with Contentful** (needs `CF_OAUTH_CLIENT_ID`).
-   - *Local shortcut without OAuth:* set the cookie `cf_user_token` to an org-admin PAT, then open `/demo`.
-3. The console (`/demo`) gives you:
+   - *Local shortcut without OAuth:* set the cookie `cf_user_token` to an org-admin PAT, then open `/console`.
+3. The console (`/console`) gives you:
 - **MVP 1** — a table of every space showing whether the protected **Org Admins team** is
   attached as Admin, and an **"Attach team to ALL spaces"** button (idempotent fan-out).
 - **MVP 2** — pick a space, **toggle the governed role ON/OFF** (ON creates the deny-ruled
@@ -34,7 +34,7 @@ A web console drives **both MVPs** live. It's gated by **Contentful OAuth + Org 
   admins/owners flagged 🛡️ **protected** (Remove is refused for them), and **add a user** under
   a non-admin role (the delegated bridge).
 
-> All `/api/demo/*` endpoints require an Org-Admin session (401/403 otherwise) — safe to deploy.
+> All `/api/console/*` endpoints require an Org-Admin session (401/403 otherwise) — safe to deploy.
 
 The CLI probes below are an alternative for proving the same mechanisms without the UI.
 
@@ -116,12 +116,12 @@ protected team.
 
 ---
 
-## Part 4 (optional) — the web app UI
+## Part 4 (optional) — the full console UI
 
-`/console` (org admin: define a deny policy, apply the governed role to a space) and `/members`
-(allow-listed inviter: add a user) run via `npm run dev`. The sign-in flow uses **Contentful
-OAuth**, so you must first create a Contentful OAuth application and set `CF_OAUTH_CLIENT_ID` /
-`CF_OAUTH_REDIRECT_URI`. Until then, demo the core via Parts 1–2.
+The **Governance Console at `/console`** (covered at the top of this guide) is the clickable way to
+run everything above — team auto-attach, governed-role toggles, bulk apply, member management. It
+requires a Contentful OAuth app (`CF_OAUTH_CLIENT_ID` / `CF_OAUTH_REDIRECT_URI`); for a quick local
+run, set the `cf_user_token` cookie to an org-admin PAT. `/members` is the inviter-only surface.
 
 ---
 

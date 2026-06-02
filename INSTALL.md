@@ -8,13 +8,12 @@ A standalone Next.js app (not a Contentful App Framework app). It exposes:
 
 | Surface | Audience | Auth |
 |---|---|---|
-| `/` → `/demo` | **Governance Console** — full MVP1 (team auto-attach) + MVP2 (governed roles, members, bulk) | Contentful OAuth login, **Org Admin/Owner** |
+| `/` → `/console` | **Governance Console** — full MVP1 (team auto-attach) + MVP2 (governed roles, members, bulk) | Contentful OAuth login, **Org Admin/Owner** |
 | `/members` | Allow-listed inviters — add users to a space (the delegated bridge) | Contentful OAuth login |
-| `/console` | (legacy minimal surface — apply a single deny) | Contentful OAuth login |
 | `/api/cron/reconcile` | Vercel Cron — drift sweep | `CRON_SECRET` |
 | `/api/webhook` | Contentful webhooks — detect protected-identity removals | HMAC (`CF_WEBHOOK_SECRET`) |
 
-> **Security boundary:** the privileged Contentful writes are performed by a **service token** held in server env. Every user-facing action is gated by **Contentful OAuth identity** (the console requires Org Admin/Owner; `/members` requires being on a space's inviter allowlist). After sign-in users land on the console at `/demo`. (Locally, you can authenticate by setting the `cf_user_token` cookie to an org-admin PAT.)
+> **Security boundary:** the privileged Contentful writes are performed by a **service token** held in server env. Every user-facing action is gated by **Contentful OAuth identity** (the console requires Org Admin/Owner; `/members` requires being on a space's inviter allowlist). After sign-in users land on the console at `/console`. (Locally, you can authenticate by setting the `cf_user_token` cookie to an org-admin PAT.)
 
 ## Prerequisites
 
@@ -93,7 +92,7 @@ This lets the app detect when a protected Org Admin/Owner or the protected team 
 
 ## Step 7 — Verify
 
-1. Visit `https://<your-vercel-domain>/` → **Sign in with Contentful** → you should land on the console at `/demo`.
+1. Visit `https://<your-vercel-domain>/` → **Sign in with Contentful** → you should land on the console at `/console`.
 2. In the console, toggle a governed role on a pilot space; confirm a `Space Admin (Governed)` role appears in that space and non-protected admins are migrated.
 3. Add a user via the console (or `/members`); confirm the membership appears in Contentful.
 4. Confirm a **non-Org-Admin** signing in gets `403 org admin required` from the console endpoints.
@@ -113,4 +112,4 @@ These are the items to harden before broad rollout:
 - The console’s member add/remove is Org-Admin scoped; the per-space **inviter allowlist** (Approach B delegation) is enforced on `/members` but not yet surfaced in the console UI.
 - `/api/webhook` currently **logs** protected-removal detections; automatic re-add and the cron drift-sweep body are stubbed (`planReconcile` exists/tested but unwired).
 - Deny-policy persistence + per-space assignment is audit-only so far (the console applies governed roles directly).
-- The console path is `/demo` (cosmetic) — rename to `/console` is a trivial follow-up.
+- The older per-surface API routes (`/api/policies`, `/api/reconcile-role`) are superseded by the console's `/api/console/*` and can be retired.

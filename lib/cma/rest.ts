@@ -1,6 +1,6 @@
 // Minimal Contentful Management REST helper using the service token, with
 // 429-aware retry and a bounded-concurrency mapper for scale operations.
-// Used by the dev-only demo console (lib/demo/*) and the scale scripts.
+// Used by the governance console (lib/console/*) and the scale scripts.
 // The product paths use the typed SDK client in ./client.ts.
 
 const BASE = "https://api.contentful.com";

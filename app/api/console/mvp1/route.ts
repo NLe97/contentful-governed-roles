@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listSpacesWithTeamStatus, attachTeamToAllSpaces, ensureTeamAttached } from "@/lib/demo/operations";
+import { listSpacesWithTeamStatus, attachTeamToAllSpaces, ensureTeamAttached } from "@/lib/console/operations";
 import { authorizeOrgAdmin } from "@/lib/auth/require-request";
 
 export async function GET(req: NextRequest) {

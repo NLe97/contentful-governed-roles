@@ -1,9 +1,8 @@
-// Dev-only demo operations exercising BOTH MVPs against a live org via the service token.
+// Governance console operations exercising BOTH MVPs against a live org via the service token.
 // MVP 1 = Org Admins team auto-attach across spaces (+ protection story).
 // MVP 2 = governed custom role with deny rules + delegated user management + protected identities.
 //
-// Not wired into the product auth path — gated behind ENABLE_DEMO and intended for local
-// demos only. See app/api/demo/*.
+// Exposed via app/api/console/* — those endpoints require a Contentful OAuth Org-Admin session.
 
 import { cfGet, cfSend, pmap } from "@/lib/cma/rest";
 import { computeGovernedRole } from "@/lib/policy/compute-governed-role";
