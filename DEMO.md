@@ -18,6 +18,26 @@ Contentful has two permission axes:
 No native role does both. This tool bridges that: a **governed custom role** (deny rules) plus a
 **service-token bridge** that performs add-user on behalf of an allow-listed person.
 
+## Easiest demo — the clickable console (`/demo`)
+
+A dev-only web console drives **both MVPs** live with just the service token (no OAuth):
+
+1. Set `CF_SERVICE_TOKEN`, `CF_ORG_ID`, `CF_PROTECTED_TEAM_ID`, and `ENABLE_DEMO=true` in `.env`.
+2. `npm run dev`, then open **http://localhost:3000/demo**.
+
+It gives you:
+- **MVP 1** — a table of every space showing whether the protected **Org Admins team** is
+  attached as Admin, and an **"Attach team to ALL spaces"** button (idempotent fan-out).
+- **MVP 2** — pick a space, **toggle the governed role ON/OFF** (ON creates the deny-ruled
+  custom role and migrates non-protected Space Admins onto it; OFF restores built-in Admin and
+  deletes the role), see **members** with org admins/owners flagged 🛡️ **protected**
+  (Remove is refused for them), and **add a user** under a non-admin role (the delegated bridge).
+
+> `ENABLE_DEMO`/`/api/demo/*` are dev-only. Never enable in production — they bypass the
+> normal auth gate and act directly with the service token.
+
+The CLI probes below are an alternative for proving the same mechanisms without the UI.
+
 ## Prerequisites
 
 1. `npm install`
