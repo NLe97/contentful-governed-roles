@@ -4,16 +4,10 @@ import {
   listMembersWithProtection, listContentTypes, listRoles, addUser, removeUser,
   applyGovernedToAllSpaces, removeGovernedFromAllSpaces,
 } from "@/lib/demo/operations";
-
-function guard(): NextResponse | null {
-  if (process.env.ENABLE_DEMO !== "true") {
-    return NextResponse.json({ error: "demo disabled (set ENABLE_DEMO=true)" }, { status: 403 });
-  }
-  return null;
-}
+import { authorizeOrgAdmin } from "@/lib/auth/require-request";
 
 export async function GET(req: NextRequest) {
-  const g = guard(); if (g) return g;
+  const auth = await authorizeOrgAdmin(req); if ("error" in auth) return auth.error;
   const spaceId = req.nextUrl.searchParams.get("spaceId");
   if (!spaceId) return NextResponse.json({ error: "spaceId required" }, { status: 422 });
   try {
@@ -27,7 +21,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const g = guard(); if (g) return g;
+  const auth = await authorizeOrgAdmin(req); if ("error" in auth) return auth.error;
   try {
     const b = await req.json();
     switch (b.action) {

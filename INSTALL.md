@@ -8,13 +8,13 @@ A standalone Next.js app (not a Contentful App Framework app). It exposes:
 
 | Surface | Audience | Auth |
 |---|---|---|
-| `/` → `/console` | Org Admins — define deny policies, apply governed roles per space | Contentful OAuth login |
+| `/` → `/demo` | **Governance Console** — full MVP1 (team auto-attach) + MVP2 (governed roles, members, bulk) | Contentful OAuth login, **Org Admin/Owner** |
 | `/members` | Allow-listed inviters — add users to a space (the delegated bridge) | Contentful OAuth login |
+| `/console` | (legacy minimal surface — apply a single deny) | Contentful OAuth login |
 | `/api/cron/reconcile` | Vercel Cron — drift sweep | `CRON_SECRET` |
 | `/api/webhook` | Contentful webhooks — detect protected-identity removals | HMAC (`CF_WEBHOOK_SECRET`) |
-| `/demo` + `/api/demo/*` | **Dev only** — full console, **disabled in production** | none (gated by `ENABLE_DEMO`) |
 
-> **Security boundary:** the privileged Contentful writes are performed by a **service token** held in server env. Every user-facing action is gated by Contentful OAuth identity + a per-space allowlist. **Never set `ENABLE_DEMO` in production** — those endpoints bypass that gate and exist only for local demos.
+> **Security boundary:** the privileged Contentful writes are performed by a **service token** held in server env. Every user-facing action is gated by **Contentful OAuth identity** (the console requires Org Admin/Owner; `/members` requires being on a space's inviter allowlist). After sign-in users land on the console at `/demo`. (Locally, you can authenticate by setting the `cf_user_token` cookie to an org-admin PAT.)
 
 ## Prerequisites
 
@@ -76,8 +76,9 @@ Project → **Settings → Environment Variables** (Production):
 | `CF_OAUTH_REDIRECT_URI` | ✅ | `https://<your-vercel-domain>/auth/callback` |
 | `CF_WEBHOOK_SECRET` | ✅ (for webhook) | a strong random string |
 | `CRON_SECRET` | ✅ (for cron) | a strong random string (Vercel can generate one) |
-| `ENABLE_DEMO` | ❌ **do not set** | leaving it unset disables the dev console |
-| `SCALE_ADMIN_EMAIL` | ❌ | dev/scale-test only |
+| `SCALE_ADMIN_EMAIL` | ❌ | dev/scale-test only (provisioning script) |
+
+> `ENABLE_DEMO` is no longer used — the console is gated by Contentful OAuth + Org-Admin, so it's safe in production without any flag.
 
 Redeploy after setting variables.
 
@@ -92,10 +93,10 @@ This lets the app detect when a protected Org Admin/Owner or the protected team 
 
 ## Step 7 — Verify
 
-1. Visit `https://<your-vercel-domain>/` → **Sign in with Contentful** → you should land on `/console`.
-2. As an Org Admin, apply a deny policy to a pilot space; confirm a `Space Admin (Governed)` role appears in that space.
-3. On `/members`, add a test user to a space; confirm the membership appears in Contentful.
-4. Confirm `/demo` is inert (its API calls return `403 demo disabled`) — that's expected in production.
+1. Visit `https://<your-vercel-domain>/` → **Sign in with Contentful** → you should land on the console at `/demo`.
+2. In the console, toggle a governed role on a pilot space; confirm a `Space Admin (Governed)` role appears in that space and non-protected admins are migrated.
+3. Add a user via the console (or `/members`); confirm the membership appears in Contentful.
+4. Confirm a **non-Org-Admin** signing in gets `403 org admin required` from the console endpoints.
 5. Check the governance space → `auditEvent` entries are being written.
 
 ---
@@ -104,12 +105,12 @@ This lets the app detect when a protected Org Admin/Owner or the protected team 
 
 - **Guardrail, not a hard boundary.** Org Owners/Admins can always bypass via Org Settings — by design. Protection of identities is detect-and-revert, not an in-UI block.
 - **Rotate** `CF_SERVICE_TOKEN` on a schedule and after the pilot. The OAuth `cf_user_token` cookie is set client-side (implicit flow) — serve only over HTTPS.
-- **Keep `ENABLE_DEMO` unset** in every deployed environment.
+- The console requires **Org Admin/Owner**; the `/members` inviter flow is gated by a per-space allowlist.
 
 ## Known limitations (MVP) / hardening roadmap
 
-The deployable product surfaces are intentionally minimal; these are the items to harden before broad rollout:
-- `/console` applies a single content-type deny; `/members` supports add (list/remove is API-level, no full UI yet).
+These are the items to harden before broad rollout:
+- The console’s member add/remove is Org-Admin scoped; the per-space **inviter allowlist** (Approach B delegation) is enforced on `/members` but not yet surfaced in the console UI.
 - `/api/webhook` currently **logs** protected-removal detections; automatic re-add and the cron drift-sweep body are stubbed (`planReconcile` exists/tested but unwired).
-- Deny-policy persistence + per-space assignment is audit-only so far.
-- The full-featured operations console (bulk apply, space table, members with protection) currently lives in the **dev-only `/demo`** surface; bringing it behind the OAuth gate is the main path to production parity.
+- Deny-policy persistence + per-space assignment is audit-only so far (the console applies governed roles directly).
+- The console path is `/demo` (cosmetic) — rename to `/console` is a trivial follow-up.

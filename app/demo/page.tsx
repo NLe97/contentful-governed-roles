@@ -28,10 +28,12 @@ export default function Demo() {
   const [bulkCt, setBulkCt] = useState("post");
   const [bulkAction, setBulkAction] = useState("edit");
   const [bulkOut, setBulkOut] = useState("");
+  const [needsLogin, setNeedsLogin] = useState(false);
 
   async function call(url: string, init?: RequestInit) {
     setErr("");
     const res = await fetch(url, init);
+    if (res.status === 401) { setNeedsLogin(true); throw new Error("not signed in"); }
     const json = await res.json();
     if (!res.ok) { setErr(json.error || `HTTP ${res.status}`); throw new Error(json.error); }
     return json;
@@ -63,10 +65,20 @@ export default function Demo() {
 
   useEffect(() => { loadSpaces().catch(() => {}); }, []);
 
+  if (needsLogin) {
+    return (
+      <main style={{ maxWidth: 560, margin: "80px auto", fontFamily: "system-ui" }}>
+        <h1>Governance Console</h1>
+        <p>You need to sign in as an Org Admin to use this console.</p>
+        <a href="/"><button>→ Sign in with Contentful</button></a>
+      </main>
+    );
+  }
+
   return (
     <main style={{ maxWidth: 900, margin: "32px auto", fontFamily: "system-ui", lineHeight: 1.5 }}>
-      <h1>Governance Demo Console</h1>
-      <p style={{ color: "#666" }}>Dev-only. Drives both MVPs live via the service token. Protected team: <code>{protectedTeamId}</code></p>
+      <h1>Governance Console</h1>
+      <p style={{ color: "#666" }}>Org-Admin only (Contentful OAuth). Drives both MVPs. Protected team: <code>{protectedTeamId}</code></p>
       {err && <p style={{ color: "crimson" }}>⚠ {err}</p>}
 
       <section style={box}>
