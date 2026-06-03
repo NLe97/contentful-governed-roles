@@ -31,6 +31,40 @@ export async function getSpaceGovernance(spaceId: string): Promise<SpaceGovernan
   return pickSpaceGovernance(res.items as unknown as RawEntry[], spaceId);
 }
 
+export interface SpaceAccessConfig { adminUserIds: string[]; inviterUserIds: string[]; }
+
+interface RawEntryLike { fields: Record<string, Record<string, unknown>> }
+export function parseAccessConfig(entry: RawEntryLike): SpaceAccessConfig {
+  const a = (entry.fields.adminUserIds as Record<string, string[]> | undefined)?.[LOCALE] ?? [];
+  const i = (entry.fields.inviterUserIds as Record<string, string[]> | undefined)?.[LOCALE] ?? [];
+  return { adminUserIds: a as string[], inviterUserIds: i as string[] };
+}
+
+export async function getSpaceAccessConfig(spaceId: string): Promise<SpaceAccessConfig> {
+  const env = await govEnv();
+  const res = await withRetry(() => env.getEntries({ content_type: "spaceGovernance", "fields.spaceId": spaceId }));
+  const item = (res.items as unknown as RawEntryLike[])[0];
+  return item ? parseAccessConfig(item) : { adminUserIds: [], inviterUserIds: [] };
+}
+
+export async function setSpaceAccessConfig(spaceId: string, spaceName: string, cfg: Partial<SpaceAccessConfig>, markSeeded = false): Promise<void> {
+  const env = await govEnv();
+  const res = await withRetry(() => env.getEntries({ content_type: "spaceGovernance", "fields.spaceId": spaceId }));
+  const existing = res.items[0] as any;
+  const current = existing ? parseAccessConfig(existing as RawEntryLike) : { adminUserIds: [], inviterUserIds: [] };
+  const fields: Record<string, Record<string, unknown>> = {
+    spaceId: { [LOCALE]: spaceId },
+    spaceName: { [LOCALE]: spaceName },
+    adminUserIds: { [LOCALE]: cfg.adminUserIds ?? current.adminUserIds },
+    inviterUserIds: { [LOCALE]: cfg.inviterUserIds ?? current.inviterUserIds },
+  };
+  if (markSeeded) {
+    fields.lastSeededAt = { [LOCALE]: new Date().toISOString() };
+  }
+  if (existing) { existing.fields = { ...existing.fields, ...fields }; await withRetry(() => existing.update()); }
+  else { await withRetry(() => env.createEntry("spaceGovernance", { fields })); }
+}
+
 export async function appendAudit(event: AuditEvent): Promise<void> {
   const env = await govEnv();
   await withRetry(() => env.createEntry("auditEvent", {
