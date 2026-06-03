@@ -26,9 +26,9 @@ A web console drives **both MVPs** live. It's gated by **Contentful OAuth + Org 
 2. `npm run dev`, open **http://localhost:3000/** → **Sign in with Contentful** (needs `CF_OAUTH_CLIENT_ID`).
    - *Local shortcut without OAuth:* set the cookie `cf_user_token` to an org-admin PAT, then open `/console`.
 3. The console (`/console`) gives you:
-- **MVP 1** — a table of every space showing whether the protected **Org Admins team** is
+- **Org Admin Coverage** — a table of every space showing whether the protected **Org Admins team** is
   attached as Admin, and an **"Attach team to ALL spaces"** button (idempotent fan-out).
-- **MVP 2** — pick a space, **toggle the governed role ON/OFF** (ON creates the deny-ruled
+- **Space Role Governance** — pick a space, **toggle the governed role ON/OFF** (ON creates the deny-ruled
   custom role and migrates non-protected Space Admins onto it; OFF restores built-in Admin and
   deletes the role), **bulk apply/remove across ALL spaces**, see **members** with org
   admins/owners flagged 🛡️ **protected** (Remove is refused for them), and **add a user** under
