@@ -8,7 +8,7 @@ A standalone Next.js app (not a Contentful App Framework app). It exposes:
 
 | Surface | Audience | Auth |
 |---|---|---|
-| `/` → `/console` | **Governance Console** — full MVP1 (team auto-attach) + MVP2 (governed roles, members, bulk) | Contentful OAuth login, **Org Admin/Owner** |
+| `/` → `/console` | **Governance Console** — persona-aware: **Org Admins** see all spaces + MVP1 (team auto-attach) + MVP2 (governed roles, members, bulk) + admin/inviter list management + **Seed Space Admins** button; **Space Admins** see only their own space(s) (role manager + members); **Inviters** see add-user only | Contentful OAuth login |
 | `/members` | Allow-listed inviters — add users to a space (the delegated bridge) | Contentful OAuth login |
 | `/api/cron/reconcile` | Vercel Cron — drift sweep | `CRON_SECRET` |
 | `/api/webhook` | Contentful webhooks — detect protected-identity removals | HMAC (`CF_WEBHOOK_SECRET`) |
@@ -60,7 +60,11 @@ vercel deploy --prod
 
 `vercel.json` already declares the daily cron (`/api/cron/reconcile`).
 
-## Step 5 — Set environment variables in Vercel
+## Step 5 — Seed Space Admins (first deploy only)
+
+After the first deploy, have an **Org Admin** sign in and open `/console`. At the top of the console, click **"Seed Space Admins (all spaces)"**. This reads every space's current built-in Space Admins from Contentful and populates each space's admin list in the governance app, so existing space admins immediately receive delegated MVP 2 access without any manual data entry. The operation is **idempotent** — re-running it adds any new space admins and is safe to repeat.
+
+## Step 6 — Set environment variables in Vercel (if not already set)
 
 Project → **Settings → Environment Variables** (Production):
 
@@ -81,7 +85,7 @@ Project → **Settings → Environment Variables** (Production):
 
 Redeploy after setting variables.
 
-## Step 6 — Register the protection webhook (recommended)
+## Step 7 — Register the protection webhook (recommended)
 
 In Contentful → **Organization/space settings → Webhooks → Add**:
 - **URL:** `https://<your-vercel-domain>/api/webhook`
@@ -90,7 +94,7 @@ In Contentful → **Organization/space settings → Webhooks → Add**:
 
 This lets the app detect when a protected Org Admin/Owner or the protected team is removed from a space.
 
-## Step 7 — Verify
+## Step 8 — Verify
 
 1. Visit `https://<your-vercel-domain>/` → **Sign in with Contentful** → you should land on the console at `/console`.
 2. In the console, toggle a governed role on a pilot space; confirm a `Space Admin (Governed)` role appears in that space and non-protected admins are migrated.
@@ -104,7 +108,10 @@ This lets the app detect when a protected Org Admin/Owner or the protected team 
 
 - **Guardrail, not a hard boundary.** Org Owners/Admins can always bypass via Org Settings — by design. Protection of identities is detect-and-revert, not an in-UI block.
 - **Rotate** `CF_SERVICE_TOKEN` on a schedule and after the pilot. The OAuth `cf_user_token` cookie is set client-side (implicit flow) — serve only over HTTPS.
-- The console requires **Org Admin/Owner**; the `/members` inviter flow is gated by a per-space allowlist.
+- **Three personas** are supported by the console, all authenticated via the same **Contentful OAuth** flow:
+  1. **Org Admin / Owner** — full console: all spaces, team auto-attach, governed-role toggles, admin/inviter list management, and the Seed button.
+  2. **Space Admin** — an org **Member** who has been seeded (or manually added) as a space admin in the governance app. They sign in exactly the same way (Contentful OAuth) but **see and manage only their own space(s)**: role manager + member management. They are blocked with 403 on any other space. Their org membership stays **Member** — no org-level privilege is granted.
+  3. **Inviter** — an org Member on a space's inviter allowlist. They can only reach the add-user (`/members`) surface for that space.
 
 ## Known limitations (MVP) / hardening roadmap
 

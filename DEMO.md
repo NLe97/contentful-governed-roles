@@ -36,6 +36,20 @@ A web console drives **both MVPs** live. It's gated by **Contentful OAuth + Org 
 
 > All `/api/console/*` endpoints require an Org-Admin session (401/403 otherwise) — safe to deploy.
 
+### Delegated per-space governance
+
+This shows how a regular org **Member** who happens to be a built-in Space Admin of one space gets governed self-service — without receiving any org-level privilege.
+
+1. **Sign in as Org Admin** → you land on the full console. Click **"Seed Space Admins (all spaces)"** once. This reads each space's current built-in Space Admins and populates the governance app's admin lists — existing space admins instantly get delegated access. (Idempotent — safe to re-run.)
+
+2. **Sign in as an org Member who is a built-in Space Admin of exactly one space.** They authenticate via the same Contentful OAuth flow. The console detects their governance role and shows only that space:
+   - They can **create deny-ruled custom roles** for the space (e.g. block editing of a sensitive content type).
+   - They can **assign members** to roles within the space, including other org members and peers.
+   - They can **add or remove users** from the space via the delegated service-token bridge.
+   - Any request to view or modify **a different space** returns **403 Forbidden** — the API enforces this server-side regardless of the UI.
+
+3. **Guardrail is always on:** even from the Space Admin persona, the console and API refuse to re-role or remove an **Org Admin or Owner**. The protected-identity check is derived server-side from the org's current admin/owner list — it is never trusted from the client.
+
 The CLI probes below are an alternative for proving the same mechanisms without the UI.
 
 ## Prerequisites
