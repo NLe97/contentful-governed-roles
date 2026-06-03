@@ -1,4 +1,6 @@
-export const metadata = { title: "Contentful Governed Roles" };
+import "./globals.css";
+
+export const metadata = { title: "Contentful Governance Console" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

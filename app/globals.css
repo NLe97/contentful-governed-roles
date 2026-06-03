@@ -1,0 +1,52 @@
+/* app/globals.css — design tokens + lightweight component classes (no deps) */
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --border: #e3e6ea; --text: #1b2430; --muted: #5b6675;
+  --accent: #4f46e5; --accent-fg: #ffffff;
+  --ok-bg: #e7f6ec; --ok-fg: #1c7a43; --warn-bg: #fdf3e0; --warn-fg: #a86508;
+  --bad-bg: #fcebec; --bad-fg: #b42330; --muted-bg: #eef0f3; --muted-fg: #5b6675;
+  --radius: 10px; --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.1);
+  --space: 8px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+a { color: var(--accent); }
+.container { max-width: 960px; margin: 0 auto; padding: 24px 20px 64px; }
+.app-header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+.app-header h1 { font-size: 20px; margin: 0; }
+.app-header .who { color: var(--muted); font-size: 13px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 20px; }
+.card > h2 { font-size: 16px; margin: 0 0 2px; }
+.card > .sub { color: var(--muted); font-size: 13px; margin: 0 0 16px; }
+.subcard { border: 1px dashed var(--border); border-radius: 8px; padding: 14px; margin-bottom: 16px; background: #fafbfc; }
+.subcard > b { font-size: 13px; }
+h3 { font-size: 14px; margin: 20px 0 8px; }
+.btn { font: inherit; padding: 7px 13px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
+.btn:hover { border-color: #c9ced6; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn:focus-visible, .input:focus-visible, .select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.btn-primary:hover { filter: brightness(1.05); border-color: var(--accent); }
+.btn-danger { background: var(--bad-bg); border-color: #f3c6ca; color: var(--bad-fg); }
+.btn + .btn { margin-left: 8px; }
+table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table th { text-align: left; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); padding: 8px 10px; }
+.table td { border-bottom: 1px solid var(--border); padding: 8px 10px; }
+.table tr:last-child td { border-bottom: 0; }
+.pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.pill-ok { background: var(--ok-bg); color: var(--ok-fg); }
+.pill-warn { background: var(--warn-bg); color: var(--warn-fg); }
+.pill-bad { background: var(--bad-bg); color: var(--bad-fg); }
+.pill-muted { background: var(--muted-bg); color: var(--muted-fg); }
+.badge { font-size: 12px; color: var(--muted); }
+.banner { border-radius: 8px; padding: 10px 14px; font-size: 14px; margin-bottom: 16px; }
+.banner-info { background: var(--muted-bg); color: var(--text); }
+.banner-warn { background: var(--warn-bg); color: var(--warn-fg); }
+.banner-error { background: var(--bad-bg); color: var(--bad-fg); }
+label.label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 13px; margin-right: 12px; }
+input.input, select.select { font: inherit; padding: 6px 9px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); }
+.field-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 10px 0; }
+.empty-state { color: var(--muted); text-align: center; padding: 28px; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+pre { background: #0f172a0a; padding: 12px; border-radius: 8px; overflow: auto; font-size: 12px; white-space: pre-wrap; }
