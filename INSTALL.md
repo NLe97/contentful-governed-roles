@@ -8,7 +8,7 @@ A standalone Next.js app (not a Contentful App Framework app). It exposes:
 
 | Surface | Audience | Auth |
 |---|---|---|
-| `/` → `/console` | **Governance Console** — persona-aware: **Org Admins** see all spaces + **Setup & Health** + **Org Admin Coverage** (team auto-attach) + **Space Role Governance** (governed roles, members, bulk) + admin/inviter list management + **Seed Space Admins** button; **Space Admins** see only their own space(s) (role manager + members); **Inviters** see add-user only | Contentful OAuth login |
+| `/` → `/console` | **Governance Console** — persona-aware: **Org Admins** see all spaces + **Setup & Health** + **Org Admin Coverage** (team auto-attach) + **Space Role Governance** (governed roles, members, bulk) + admin/inviter list management + **Import Space Admins** button; **Space Admins** see only their own space(s) (role manager + members); **Inviters** see add-user only | Contentful OAuth login |
 | `/members` | Allow-listed inviters — add users to a space (the delegated bridge) | Contentful OAuth login |
 | `/api/cron/reconcile` | Vercel Cron — drift sweep | `CRON_SECRET` |
 | `/api/webhook` | Contentful webhooks — detect protected-identity removals | HMAC (`CF_WEBHOOK_SECRET`) |
@@ -60,9 +60,9 @@ vercel deploy --prod
 
 `vercel.json` already declares the daily cron (`/api/cron/reconcile`).
 
-## Step 5 — Seed Space Admins (first deploy only)
+## Step 5 — Import Space Admins (first deploy only)
 
-After the first deploy, have an **Org Admin** sign in and open `/console`. At the top of the console, click **"Seed Space Admins (all spaces)"**. This reads every space's current built-in Space Admins from Contentful and populates each space's admin list in the governance app, so existing space admins immediately receive delegated **Space Role Governance** access without any manual data entry. The operation is **idempotent** — re-running it adds any new space admins and is safe to repeat.
+After the first deploy, have an **Org Admin** sign in and open `/console`. At the top of the console, click **"Import admins from all spaces"**. This reads every space's current built-in Space Admins from Contentful and populates each space's admin list in the governance app, so existing space admins immediately receive delegated **Space Role Governance** access without any manual data entry. The operation is **idempotent** — re-running it adds any new space admins and is safe to repeat.
 
 Before seeding, the **Setup & Health** card at the top of the console should show all checks green (required env set, org reachable, governance content model ready). If anything is red, the banner names the exact remediation — set the missing env var or run the bootstrap script — before continuing.
 

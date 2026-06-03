@@ -223,8 +223,8 @@ export default function Demo() {
     finally { setBusy(""); }
   }
   async function seedAll() {
-    setBusy("seed"); setSeedOut("Seeding…");
-    try { const d = await call("/api/console/admins", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "seedAll" }) }); setSeedOut(`Seeded ${d.seeded} space(s).`); }
+    setBusy("seed"); setSeedOut("Importing…");
+    try { const d = await call("/api/console/admins", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "seedAll" }) }); setSeedOut(`Imported admins from ${d.seeded} space(s).`); }
     catch { setSeedOut(""); } finally { setBusy(""); }
   }
 
@@ -510,11 +510,11 @@ export default function Demo() {
       {/* ── Setup & Health ── */}
       <SetupCard />
 
-      {/* ── Seed button (top-level) ── */}
+      {/* ── Import admins button (top-level) ── */}
       <section className="card">
-        <h2>Seed Space Admins</h2>
-        <p className="sub">Populates the adminUserIds list for all spaces from their current built-in space admins.</p>
-        <button className="btn btn-primary" onClick={seedAll} disabled={!!busy}>Seed Space Admins (all spaces)</button>
+        <h2>Import Space Admins</h2>
+        <p className="sub">Bring each space&apos;s current admins into the governance app so they get delegated access.</p>
+        <button className="btn btn-primary" onClick={seedAll} disabled={!!busy}>Import admins from all spaces</button>
         {seedOut && <p>{seedOut}</p>}
       </section>
 
