@@ -99,7 +99,7 @@ This lets the app detect when a protected Org Admin/Owner or the protected team 
 1. Visit `https://<your-vercel-domain>/` → **Sign in with Contentful** → you should land on the console at `/console`.
 2. In the console, toggle a governed role on a pilot space; confirm a `Space Admin (Governed)` role appears in that space and non-protected admins are migrated.
 3. Add a user via the console (or `/members`); confirm the membership appears in Contentful.
-4. Confirm a **non-Org-Admin** signing in gets `403 org admin required` from the console endpoints.
+4. Confirm persona scoping: a **Space Admin** (org member, built-in admin of one space) signs in and sees only that space; they get **403** on spaces they don't manage; a member with no space-admin/inviter access sees "No governed spaces."
 5. Check the governance space → `auditEvent` entries are being written.
 
 ---
