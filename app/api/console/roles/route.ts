@@ -3,8 +3,10 @@ import { authorizeSpaceAccess } from "@/lib/auth/require-request";
 import {
   listSpaceRoles, createSpaceRole, updateSpaceRole, deleteSpaceRole,
   assignMemberRole, assignMemberRoleGuarded, listMembersWithProtection, getProtectedUserIds,
+  getMembershipUserId, getMemberRoleInfo,
 } from "@/lib/console/operations";
 import { DenyPolicySchema } from "@/lib/policy/types";
+import { blocksSelfGovernanceLift, blocksOwnRoleEdit } from "@/lib/auth/space-access";
 
 export async function GET(req: NextRequest) {
   const spaceId = req.nextUrl.searchParams.get("spaceId");
@@ -27,13 +29,27 @@ export async function POST(req: NextRequest) {
       }
       case "updateRole": {
         const p = DenyPolicySchema.safeParse(b.policy); if (!p.success) return NextResponse.json({ error: p.error.message }, { status: 422 });
+        if (!auth.privileged) {
+          const info = await getMemberRoleInfo(spaceId, auth.identity.userId);
+          if (info && blocksOwnRoleEdit(false, info.roleIds, b.roleId))
+            return NextResponse.json({ error: "you cannot modify a role you currently hold" }, { status: 403 });
+        }
         await updateSpaceRole(spaceId, b.roleId, p.data); return NextResponse.json({ ok: true });
       }
-      case "deleteRole":
+      case "deleteRole": {
+        if (!auth.privileged) {
+          const info = await getMemberRoleInfo(spaceId, auth.identity.userId);
+          if (info && blocksOwnRoleEdit(false, info.roleIds, b.roleId))
+            return NextResponse.json({ error: "you cannot modify a role you currently hold" }, { status: 403 });
+        }
         await deleteSpaceRole(spaceId, b.roleId); return NextResponse.json({ ok: true });
+      }
       case "assign": {
+        const targetUserId = await getMembershipUserId(spaceId, b.membershipId);   // server-resolved
         const ctx = { protectedTeamId: process.env.CF_PROTECTED_TEAM_ID!, orgAdminOwnerUserIds: await getProtectedUserIds() };
-        await assignMemberRoleGuarded(b.targetUserId, ctx, () => assignMemberRole(spaceId, b.membershipId, b.roleId));
+        if (blocksSelfGovernanceLift(auth.privileged, auth.identity.userId, targetUserId))
+          return NextResponse.json({ error: "you cannot change your own governance — ask an org admin or a built-in space admin" }, { status: 403 });
+        await assignMemberRoleGuarded(targetUserId, ctx, () => assignMemberRole(spaceId, b.membershipId, b.roleId));
         return NextResponse.json({ ok: true });
       }
       default: return NextResponse.json({ error: "unknown action" }, { status: 422 });

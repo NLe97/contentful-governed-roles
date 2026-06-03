@@ -33,13 +33,14 @@ async function resolveCaller(req: NextRequest): Promise<Identity | NextResponse>
   catch { return NextResponse.json({ error: "invalid session" }, { status: 401 }); }
 }
 
-export async function authorizeSpaceAccess(req: NextRequest, spaceId: string): Promise<{ identity: Identity } | { error: NextResponse }> {
+export async function authorizeSpaceAccess(req: NextRequest, spaceId: string): Promise<{ identity: Identity; privileged: boolean } | { error: NextResponse }> {
   const idOrErr = await resolveCaller(req);
   if (idOrErr instanceof NextResponse) return { error: idOrErr };
   const identity = idOrErr;
-  if (identity.isOrgAdmin) return { identity };
+  if (identity.isOrgAdmin) return { identity, privileged: true };
   const [cfg, builtin] = await Promise.all([getSpaceAccessConfig(spaceId), isBuiltinSpaceAdmin(spaceId, identity.userId)]);
-  if (canAccessSpace(identity, cfg, builtin)) return { identity };
+  const ok = canAccessSpace(identity, cfg, builtin);
+  if (ok) return { identity, privileged: builtin };
   return { error: NextResponse.json({ error: "no access to this space" }, { status: 403 }) };
 }
 

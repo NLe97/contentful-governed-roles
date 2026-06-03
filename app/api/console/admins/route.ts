@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
         const admins = await listBuiltinAdmins(s.spaceId);
         const cur = await getSpaceAccessConfig(s.spaceId);
         const merged = Array.from(new Set([...cur.adminUserIds, ...admins]));
-        await setSpaceAccessConfig(s.spaceId, s.spaceName, { adminUserIds: merged, inviterUserIds: cur.inviterUserIds });
+        await setSpaceAccessConfig(s.spaceId, s.spaceName, { adminUserIds: merged, inviterUserIds: cur.inviterUserIds }, true);
         results.push({ spaceId: s.spaceId, admins: merged.length });
       }
       return NextResponse.json({ seeded: results.length, results });

@@ -47,18 +47,20 @@ export async function getSpaceAccessConfig(spaceId: string): Promise<SpaceAccess
   return item ? parseAccessConfig(item) : { adminUserIds: [], inviterUserIds: [] };
 }
 
-export async function setSpaceAccessConfig(spaceId: string, spaceName: string, cfg: Partial<SpaceAccessConfig>): Promise<void> {
+export async function setSpaceAccessConfig(spaceId: string, spaceName: string, cfg: Partial<SpaceAccessConfig>, markSeeded = false): Promise<void> {
   const env = await govEnv();
   const res = await withRetry(() => env.getEntries({ content_type: "spaceGovernance", "fields.spaceId": spaceId }));
   const existing = res.items[0] as any;
   const current = existing ? parseAccessConfig(existing as RawEntryLike) : { adminUserIds: [], inviterUserIds: [] };
-  const fields = {
+  const fields: Record<string, Record<string, unknown>> = {
     spaceId: { [LOCALE]: spaceId },
     spaceName: { [LOCALE]: spaceName },
     adminUserIds: { [LOCALE]: cfg.adminUserIds ?? current.adminUserIds },
     inviterUserIds: { [LOCALE]: cfg.inviterUserIds ?? current.inviterUserIds },
-    lastSeededAt: { [LOCALE]: new Date().toISOString() },
   };
+  if (markSeeded) {
+    fields.lastSeededAt = { [LOCALE]: new Date().toISOString() };
+  }
   if (existing) { existing.fields = { ...existing.fields, ...fields }; await withRetry(() => existing.update()); }
   else { await withRetry(() => env.createEntry("spaceGovernance", { fields })); }
 }

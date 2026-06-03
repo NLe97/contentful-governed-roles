@@ -292,3 +292,14 @@ export async function listBuiltinAdmins(spaceId: string): Promise<string[]> {
 export async function isBuiltinSpaceAdmin(spaceId: string, userId: string): Promise<boolean> {
   return (await listBuiltinAdmins(spaceId)).includes(userId);
 }
+
+export async function getMembershipUserId(spaceId: string, membershipId: string): Promise<string> {
+  const m = await cfGet<{ sys: { user: { sys: { id: string } } } }>(`/spaces/${spaceId}/space_memberships/${membershipId}`);
+  return m.sys.user.sys.id;
+}
+
+export async function getMemberRoleInfo(spaceId: string, userId: string): Promise<{ admin: boolean; roleIds: string[] } | null> {
+  const members = await listMembersWithProtection(spaceId);
+  const m = members.find((x) => x.userId === userId);
+  return m ? { admin: m.admin, roleIds: m.roleIds } : null;
+}
