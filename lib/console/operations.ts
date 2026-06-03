@@ -7,6 +7,8 @@
 import { cfGet, cfSend, pmap } from "@/lib/cma/rest";
 import { computeGovernedRole } from "@/lib/policy/compute-governed-role";
 import type { DenyPolicy } from "@/lib/policy/types";
+import { isProtectedRemoval, type ProtectedContext } from "@/lib/guardrails/protected";
+import { decodeDenies, roleDeletable } from "./role-policy";
 
 export const GOVERNED_ROLE_NAME = "Space Admin (Governed)";
 
@@ -234,4 +236,59 @@ function summarize(rows: { ok: boolean; spaceId: string; migrated?: number; rest
     restored: rows.reduce((n, r) => n + (r.restored ?? 0), 0),
     errors: rows.filter((r) => !r.ok).map((r) => ({ spaceId: r.spaceId, error: r.error ?? "" })).slice(0, 10),
   };
+}
+
+// ---------- Task 5: role CRUD, guarded member assignment, builtin-admin lookup ----------
+
+export interface SpaceRole { id: string; name: string; denies: DenyPolicy["denies"] }
+
+export async function listSpaceRoles(spaceId: string): Promise<SpaceRole[]> {
+  const res = await cfGet<{ items: { name: string; policies: any[]; sys: { id: string } }[] }>(`/spaces/${spaceId}/roles?limit=100`);
+  return res.items.map((r) => ({ id: r.sys.id, name: r.name, denies: decodeDenies(r.policies ?? []) }));
+}
+
+export async function createSpaceRole(spaceId: string, policy: DenyPolicy): Promise<string> {
+  const def = computeGovernedRole(policy);
+  const created = await cfSend<{ sys: { id: string } }>("POST", `/spaces/${spaceId}/roles`,
+    { name: def.name, description: def.description ?? "", permissions: def.permissions, policies: def.policies });
+  return created.sys.id;
+}
+
+export async function updateSpaceRole(spaceId: string, roleId: string, policy: DenyPolicy): Promise<void> {
+  const def = computeGovernedRole(policy);
+  const cur = await cfGet<{ sys: { version: number } }>(`/spaces/${spaceId}/roles/${roleId}`);
+  await cfSend("PUT", `/spaces/${spaceId}/roles/${roleId}`,
+    { name: def.name, description: def.description ?? "", permissions: def.permissions, policies: def.policies },
+    { "X-Contentful-Version": String(cur.sys.version) });
+}
+
+export async function deleteSpaceRole(spaceId: string, roleId: string): Promise<void> {
+  const members = await listMembersWithProtection(spaceId);
+  const { deletable, holders } = roleDeletable(roleId, members.map((m) => ({ roleIds: m.roleIds })));
+  if (!deletable) throw new Error(`Refused: ${holders} member(s) still hold this role — reassign them first`);
+  const cur = await cfGet<{ sys: { version: number } }>(`/spaces/${spaceId}/roles/${roleId}`);
+  await cfSend("DELETE", `/spaces/${spaceId}/roles/${roleId}`, undefined, { "X-Contentful-Version": String(cur.sys.version) });
+}
+
+export async function assignMemberRoleGuarded(targetUserId: string, ctx: ProtectedContext, apply: () => Promise<void>): Promise<void> {
+  if (isProtectedRemoval({ kind: "user", id: targetUserId }, ctx)) {
+    throw new Error("Refused: target is a protected org admin/owner");
+  }
+  await apply();
+}
+
+export async function assignMemberRole(spaceId: string, membershipId: string, roleId: string): Promise<void> {
+  const m = await cfGet<{ sys: { version: number } }>(`/spaces/${spaceId}/space_memberships/${membershipId}`);
+  await cfSend("PUT", `/spaces/${spaceId}/space_memberships/${membershipId}`,
+    { admin: false, roles: [{ sys: { type: "Link", linkType: "Role", id: roleId } }] },
+    { "X-Contentful-Version": String(m.sys.version) });
+}
+
+export async function listBuiltinAdmins(spaceId: string): Promise<string[]> {
+  const res = await cfGet<{ items: { admin: boolean; sys: { user: { sys: { id: string } } } }[] }>(`/spaces/${spaceId}/space_memberships?limit=200`);
+  return res.items.filter((m) => m.admin).map((m) => m.sys.user.sys.id);
+}
+
+export async function isBuiltinSpaceAdmin(spaceId: string, userId: string): Promise<boolean> {
+  return (await listBuiltinAdmins(spaceId)).includes(userId);
 }
