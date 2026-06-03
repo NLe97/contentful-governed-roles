@@ -23,6 +23,8 @@ const TYPES: { id: string; name: string; fields: { id: string; name: string; typ
     { id: "inviterUserIds", name: "Inviter User IDs", type: "Object" },
     { id: "governedRoleId", name: "Governed Role ID", type: "Symbol" },
     { id: "rolloutStatus", name: "Rollout Status", type: "Symbol" },
+    { id: "adminUserIds", name: "Admin User IDs", type: "Object" },
+    { id: "lastSeededAt", name: "Last Seeded At", type: "Date" },
   ] },
   { id: "auditEvent", name: "Audit Event", fields: [
     { id: "eventType", name: "Event Type", type: "Symbol" },
