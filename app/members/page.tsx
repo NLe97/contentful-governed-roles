@@ -15,13 +15,20 @@ export default function Members() {
   }
 
   return (
-    <main style={{ maxWidth: 720, margin: "40px auto", fontFamily: "system-ui" }}>
-      <h1>Manage Space Members</h1>
-      <p>Add a user to your space. Protected Org Admins/Owners cannot be removed here.</p>
-      <label>Space ID <input value={spaceId} onChange={(e) => setSpaceId(e.target.value)} /></label><br />
-      <label>User email <input value={email} onChange={(e) => setEmail(e.target.value)} /></label><br />
-      <button onClick={addMember}>Add user</button>
-      <pre>{out}</pre>
+    <main className="container">
+      <div className="app-header"><h1>Contentful Governance Console</h1></div>
+      <section className="card">
+        <h2>Add a user</h2>
+        <p className="sub">Add a user to your space. Protected Org Admins/Owners cannot be removed here.</p>
+        <div className="field-row">
+          <label className="label">Space ID <input className="input" value={spaceId} onChange={(e) => setSpaceId(e.target.value)} /></label>
+        </div>
+        <div className="field-row">
+          <label className="label">User email <input className="input" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
+        </div>
+        <button className="btn btn-primary" onClick={addMember}>Add user</button>
+        {out && <pre>{out}</pre>}
+      </section>
     </main>
   );
 }
