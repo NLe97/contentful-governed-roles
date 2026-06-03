@@ -6,10 +6,13 @@ export default function Home() {
     redirectUri: process.env.CF_OAUTH_REDIRECT_URI ?? "",
   });
   return (
-    <main style={{ maxWidth: 560, margin: "80px auto", fontFamily: "system-ui" }}>
-      <h1>Contentful Governed Roles</h1>
-      <p>Sign in with Contentful to manage governed roles and space members.</p>
-      <a href={url}><button>Sign in with Contentful</button></a>
+    <main className="container">
+      <div className="app-header"><h1>Contentful Governance Console</h1></div>
+      <section className="card">
+        <h2>Sign in</h2>
+        <p className="sub">Sign in with Contentful to manage governed roles and space members.</p>
+        <a href={url}><button className="btn btn-primary">Sign in with Contentful</button></a>
+      </section>
     </main>
   );
 }

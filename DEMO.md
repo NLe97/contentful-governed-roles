@@ -26,9 +26,9 @@ A web console drives **both MVPs** live. It's gated by **Contentful OAuth + Org 
 2. `npm run dev`, open **http://localhost:3000/** → **Sign in with Contentful** (needs `CF_OAUTH_CLIENT_ID`).
    - *Local shortcut without OAuth:* set the cookie `cf_user_token` to an org-admin PAT, then open `/console`.
 3. The console (`/console`) gives you:
-- **MVP 1** — a table of every space showing whether the protected **Org Admins team** is
+- **Org Admin Coverage** — a table of every space showing whether the protected **Org Admins team** is
   attached as Admin, and an **"Attach team to ALL spaces"** button (idempotent fan-out).
-- **MVP 2** — pick a space, **toggle the governed role ON/OFF** (ON creates the deny-ruled
+- **Space Role Governance** — pick a space, **toggle the governed role ON/OFF** (ON creates the deny-ruled
   custom role and migrates non-protected Space Admins onto it; OFF restores built-in Admin and
   deletes the role), **bulk apply/remove across ALL spaces**, see **members** with org
   admins/owners flagged 🛡️ **protected** (Remove is refused for them), and **add a user** under
@@ -40,7 +40,7 @@ A web console drives **both MVPs** live. It's gated by **Contentful OAuth + Org 
 
 This shows how a regular org **Member** who happens to be a built-in Space Admin of one space gets governed self-service — without receiving any org-level privilege.
 
-1. **Sign in as Org Admin** → you land on the full console. Click **"Seed Space Admins (all spaces)"** once. This reads each space's current built-in Space Admins and populates the governance app's admin lists — existing space admins instantly get delegated access. (Idempotent — safe to re-run.)
+1. **Sign in as Org Admin** → you land on the full console. Click **"Import admins from all spaces"** once. This reads each space's current built-in Space Admins and populates the governance app's admin lists — existing space admins instantly get delegated access. (Idempotent — safe to re-run.)
 
 2. **Sign in as an org Member who is a built-in Space Admin of exactly one space.** They authenticate via the same Contentful OAuth flow. The console detects their governance role and shows only that space:
    - They can **create deny-ruled custom roles** for the space (e.g. block editing of a sensitive content type).
