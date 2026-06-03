@@ -72,9 +72,12 @@ that checks the deployment is wired up correctly — without ever exposing secre
 - **Governance content model ready** — the `denyPolicy` / `spaceGovernance` / `auditEvent` content
   types exist in the governance space.
 
-If anything is missing or failing, the banner names the exact remediation (which env var to set, or to
-run the bootstrap script). When all green, it shows "All systems go." Backed by a pure, unit-tested
-`summarizeHealth` helper (`lib/console/health.ts`) and the `GET /api/console/health` endpoint.
+If anything is missing or failing, the banner names the exact remediation (which env var to set). When
+the content model is missing, the card shows a **"Provision content model"** button that creates the
+governance content types in-app (`POST /api/console/provision` → `ensureContentModel()`) — so a fresh
+deployment can be set up entirely from the browser, no local terminal required. When all green, it
+shows "All systems go." Backed by a pure, unit-tested `summarizeHealth` helper
+(`lib/console/health.ts`) and the `GET /api/console/health` endpoint.
 
 ---
 
@@ -83,7 +86,8 @@ run the bootstrap script). When all green, it shows "All systems go." Backed by 
 ```bash
 npm install
 cp .env.example .env          # fill the service token, org/space IDs, OAuth client + secrets
-npx tsx scripts/bootstrap.ts  # provision the governance content model (idempotent)
+npx tsx scripts/bootstrap.ts  # OPTIONAL: provision the content model from the CLI
+                              # (or do it in-app via the Setup & Health card after sign-in)
 npm run dev                   # then sign in at http://localhost:3000/
 ```
 
@@ -103,7 +107,7 @@ space: `npx tsx scripts/probe-1-role-deny.ts` (and `probe-2`, `probe-3`).
 | `/` | Sign-in landing | — |
 | `/console` | Persona-aware governance console | Contentful OAuth (org-admin for full view) |
 | `/members` | Allowlisted inviters — add users to a space | Contentful OAuth |
-| `/api/console/*` | Console backend (`me`, `health`, `mvp1`, `mvp2`, `roles`, `admins`) | Org-Admin / per-space session |
+| `/api/console/*` | Console backend (`me`, `health`, `provision`, `mvp1`, `mvp2`, `roles`, `admins`) | Org-Admin / per-space session |
 | `/api/webhook` | Contentful webhooks — detect protected-identity removals | HMAC (`CF_WEBHOOK_SECRET`) |
 | `/api/cron/reconcile` | Vercel Cron — daily drift sweep | `CRON_SECRET` |
 

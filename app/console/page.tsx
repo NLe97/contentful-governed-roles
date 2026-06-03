@@ -40,6 +40,7 @@ export default function Demo() {
 
   // ── Setup / health state ────────────────────────────────────────────────────
   const [health, setHealth] = useState<HealthResponse | null>(null);
+  const [provisioning, setProvisioning] = useState(false);
 
   // ── Org Admin Coverage state ──────────────────────────────────────────────────
   const [spaces, setSpaces] = useState<SpaceStatus[]>([]);
@@ -105,6 +106,11 @@ export default function Demo() {
     try { setHealth(await call("/api/console/health")); } catch { /* err shown */ }
   }
   useEffect(() => { if (me?.persona === "orgAdmin") loadHealth(); }, [me?.persona]);
+  async function provisionModel() {
+    setProvisioning(true);
+    try { await call("/api/console/provision", { method: "POST" }); await loadHealth(); }
+    catch { /* err shown */ } finally { setProvisioning(false); }
+  }
 
   // ── Org Admin Coverage handlers ──────────────────────────────────────────────
   async function loadSpaces() {
@@ -268,6 +274,14 @@ export default function Demo() {
             <tr><td>Governance content model</td><td>{health.governanceModelReady ? <span className="pill pill-ok">ready</span> : <span className="pill pill-bad">missing</span>}</td></tr>
           </tbody>
         </table>
+        {!health.governanceModelReady && (
+          <div className="field-row">
+            <button className="btn btn-primary" onClick={provisionModel} disabled={provisioning}>
+              {provisioning ? "Provisioning…" : "Provision content model"}
+            </button>
+            <span className="badge">Creates the governance content types in this space — no local setup needed.</span>
+          </div>
+        )}
       </section>
     );
   }
