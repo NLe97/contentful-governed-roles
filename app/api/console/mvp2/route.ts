@@ -4,12 +4,12 @@ import {
   listMembersWithProtection, listContentTypes, listRoles, addUser, removeUser,
   applyGovernedToAllSpaces, removeGovernedFromAllSpaces,
 } from "@/lib/console/operations";
-import { authorizeOrgAdmin } from "@/lib/auth/require-request";
+import { authorizeOrgAdmin, authorizeSpaceAccess, authorizeInviter } from "@/lib/auth/require-request";
 
 export async function GET(req: NextRequest) {
-  const auth = await authorizeOrgAdmin(req); if ("error" in auth) return auth.error;
   const spaceId = req.nextUrl.searchParams.get("spaceId");
   if (!spaceId) return NextResponse.json({ error: "spaceId required" }, { status: 422 });
+  const auth = await authorizeSpaceAccess(req, spaceId); if ("error" in auth) return auth.error;
   try {
     const [governed, members, contentTypes, roles] = await Promise.all([
       getGovernedStatus(spaceId), listMembersWithProtection(spaceId), listContentTypes(spaceId), listRoles(spaceId),
@@ -21,9 +21,13 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await authorizeOrgAdmin(req); if ("error" in auth) return auth.error;
+  const b = await req.json();
+  const bulk = b.action === "applyGovernedAll" || b.action === "removeGovernedAll";
+  const auth = bulk ? await authorizeOrgAdmin(req)
+    : b.action === "addUser" ? await authorizeInviter(req, b.spaceId)
+    : await authorizeSpaceAccess(req, b.spaceId);
+  if ("error" in auth) return auth.error;
   try {
-    const b = await req.json();
     switch (b.action) {
       case "applyGoverned": return NextResponse.json(await applyGovernedRole(b.spaceId, b.contentTypeId, b.denyAction ?? "edit"));
       case "removeGoverned": return NextResponse.json(await removeGovernedRole(b.spaceId));
