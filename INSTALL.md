@@ -48,7 +48,8 @@ Both paths create missing content types and back-fill missing fields on existing
 
 ## Step 3 — Create a Contentful OAuth application (login)
 
-In Contentful → **Organization settings → OAuth applications → Create**:
+Go directly to the OAuth applications page (it's hard to find in the UI — open the link):
+**https://app.contentful.com/account/profile/developers/applications** → **Create application**.
 - **Redirect URI:** `https://<your-vercel-domain>/auth/callback` (must match exactly; you can add `http://localhost:3000/auth/callback` for local testing).
 - Note the **Client ID**.
 
