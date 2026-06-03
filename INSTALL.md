@@ -29,9 +29,13 @@ In Contentful → **Account settings → Tokens → Personal Access Tokens**, cr
 
 > Production hardening: prefer a **dedicated service-identity user** (not a person's PAT) so access survives staff changes and can be revoked independently.
 
-## Step 2 — Pick/create the governance space and bootstrap it
+## Step 2 — Pick/create the governance space
 
-This app stores deny policies, per-space config, and the audit log as entries in one **governance space** (no external DB). Choose an existing empty space or create a new one, then create its content model:
+This app stores deny policies, per-space config, and the audit log as entries in one **governance space** (no external DB). Choose an existing empty space or create a new one, and note its space ID for `CF_GOVERNANCE_SPACE_ID`.
+
+You do **not** need to provision its content model from a terminal — after deploying (Steps 4–5), the **Setup & Health** card in `/console` has a **"Provision content model"** button that creates the `denyPolicy`, `spaceGovernance`, and `auditEvent` content types in-app. The whole install is browser-only.
+
+**Optional (CI / scripted setup):** you can provision from the CLI instead — it's the same idempotent operation:
 
 ```bash
 git clone https://github.com/NLe97/contentful-governed-roles.git
@@ -40,7 +44,7 @@ cp .env.example .env   # fill CF_SERVICE_TOKEN, CF_ORG_ID, CF_GOVERNANCE_SPACE_I
 npx tsx scripts/bootstrap.ts
 ```
 
-`bootstrap.ts` is idempotent — it creates `denyPolicy`, `spaceGovernance`, and `auditEvent` content types (skips any that exist).
+Both paths create missing content types and back-fill missing fields on existing ones — safe to re-run.
 
 ## Step 3 — Create a Contentful OAuth application (login)
 

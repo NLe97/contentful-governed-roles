@@ -7,34 +7,10 @@
 // Requires CF_SERVICE_TOKEN, CF_GOVERNANCE_SPACE_ID (and optionally CF_GOVERNANCE_ENVIRONMENT_ID).
 import "./load-env.ts";
 import { cfGet, cfSend } from "../lib/cma/rest.ts";
+import { GOVERNANCE_CONTENT_TYPES as TYPES } from "../lib/governance/content-model.ts";
 
 const SPACE = process.env.CF_GOVERNANCE_SPACE_ID!;
 const ENV = process.env.CF_GOVERNANCE_ENVIRONMENT_ID ?? "master";
-
-const TYPES: { id: string; name: string; fields: { id: string; name: string; type: string }[] }[] = [
-  { id: "denyPolicy", name: "Deny Policy", fields: [
-    { id: "name", name: "Name", type: "Symbol" },
-    { id: "description", name: "Description", type: "Text" },
-    { id: "denies", name: "Denies", type: "Object" },
-  ] },
-  { id: "spaceGovernance", name: "Space Governance", fields: [
-    { id: "spaceId", name: "Space ID", type: "Symbol" },
-    { id: "spaceName", name: "Space Name", type: "Symbol" },
-    { id: "policyRef", name: "Policy Ref", type: "Symbol" },
-    { id: "inviterUserIds", name: "Inviter User IDs", type: "Object" },
-    { id: "governedRoleId", name: "Governed Role ID", type: "Symbol" },
-    { id: "rolloutStatus", name: "Rollout Status", type: "Symbol" },
-    { id: "adminUserIds", name: "Admin User IDs", type: "Object" },
-    { id: "lastSeededAt", name: "Last Seeded At", type: "Date" },
-  ] },
-  { id: "auditEvent", name: "Audit Event", fields: [
-    { id: "eventType", name: "Event Type", type: "Symbol" },
-    { id: "spaceId", name: "Space ID", type: "Symbol" },
-    { id: "actorUserId", name: "Actor User ID", type: "Symbol" },
-    { id: "details", name: "Details", type: "Object" },
-    { id: "timestamp", name: "Timestamp", type: "Date" },
-  ] },
-];
 
 interface ExistingCT { name: string; fields: { id: string }[]; sys: { id: string; version: number } }
 
