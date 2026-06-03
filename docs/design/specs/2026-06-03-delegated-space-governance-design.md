@@ -32,6 +32,24 @@ guardrailed. Per-user granularity falls out naturally: different people → diff
 A Space Admin is **not** an org admin — at the org level they are only a Member. So authorization
 keys off *space* membership for Space Admins and *org* membership for Org Admins.
 
+### 2.1 Verified constraint (2026-06-03)
+
+A custom role's entire permission vocabulary is `ContentModel, Settings, ContentDelivery,
+Environments, EnvironmentAliases, Tags` — **there is no permission for managing space users/
+memberships.** Inviting/removing users is controlled solely by the membership `admin` flag
+(built-in Space Admin). Confirmed live against the org's custom roles.
+
+### 2.2 The Space Admin model — built-in super admin ↔ governed role
+
+- **Built-in Space Admin = the space's "super admin."** Full native powers, **including inviting
+  users** and managing roles. This role is **retained** — we never strip it as the way to govern.
+- **To enforce deny rules on a space admin, shift them into a governed role**: a custom role with
+  all space permissions *minus* user-invite (the inherent constraint) *plus* the deny rules. Their
+  lost invite ability is **restored through the app's service-token bridge**.
+- So governing is reversible role movement: built-in Space Admin ⇄ governed custom role. Per-user
+  granularity = different governed roles with different denies. Org Admins or a space's super admin
+  decide who gets governed and how.
+
 ## 3. Personas & access model
 
 | Persona | How identified | Can do |
@@ -89,10 +107,14 @@ Generalize the current single-role engine into role CRUD + assignment:
   governs a user or a peer Space Admin: move them off built-in admin onto a deny-ruled role).
 - **Add user** (bridge) / **Remove user** (guardrailed).
 
-**Guardrails (unchanged, enforced server-side):**
+**Guardrails (enforced server-side):**
 - Cannot remove or re-role an **Org Admin/Owner** (protected set derived server-side) or the MVP 1 team.
-- A Space Admin **cannot grant built-in full Space Admin** to anyone (prevents escalation /
-  un-governing). New members and re-roles go to custom roles only.
+- **Built-in Space Admin (super admin) is legitimate and retained** — promoting/demoting between
+  built-in Space Admin and governed roles is the *intended* mechanism, available to Org Admins and a
+  space's super admins. We do **not** block granting built-in Space Admin.
+- A **governed** Space Admin (one currently on a deny-ruled role) cannot use the app to lift their
+  *own* governance or self-promote to built-in admin — only Org Admins or a built-in super admin of
+  the space can move someone out of a governed role. (Prevents a restricted admin from escaping denies.)
 - Org Admins/Owners can always override — guardrail, not a hard boundary.
 
 ## 7. Onboarding / setup (the "easy to set up" requirement)
@@ -144,8 +166,9 @@ fan-out plumbing, the governance store pattern.
 
 ## 11. Open questions
 
-| # | Question | Default |
+| # | Question | Resolution |
 |---|---|---|
-| Q1 | Should deleting a role auto-reassign holders to a fallback, or block until reassigned? | Block + prompt (safer) |
-| Q2 | Can a Space Admin edit the space's admin/inviter lists, or Org-Admin-only? | Org-Admin-only (Space Admins manage roles/members, not who else is an admin) |
-| Q3 | Do we cap deny-ruled custom roles per space (Contentful role limits vary by plan)? | Surface the CMA error; document plan limits |
+| Q1 | Who counts as a Space Admin / can they invite + add fellow admins? | **Resolved:** mirror Contentful default — built-in Space Admins are recognized **live** by the app and can invite users + promote others natively (which auto-grants app access). The stored admin/inviter lists are Org-Admin-managed and seeded; Space Admins don't need to edit lists. |
+| Q2 | Anti-escalation — can built-in Space Admin be granted? | **Resolved:** built-in Space Admin (super admin) is retained and grantable; only a *governed* admin self-lifting their own governance is blocked (§2.2, §6). |
+| Q3 | Should deleting a role block until holders are reassigned? | Block + prompt (safer). |
+| Q4 | Do we cap deny-ruled custom roles per space (Contentful role limits vary by plan)? | Surface the CMA error; document plan limits. |
