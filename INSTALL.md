@@ -15,6 +15,29 @@ A standalone Next.js app (not a Contentful App Framework app). It exposes:
 
 > **Security boundary:** the privileged Contentful writes are performed by a **service token** held in server env. Every user-facing action is gated by **Contentful OAuth identity** (the console requires Org Admin/Owner; `/members` requires being on a space's inviter allowlist). After sign-in users land on the console at `/console`. (Locally, you can authenticate by setting the `cf_user_token` cookie to an org-admin PAT.)
 
+## How it's wired (Vercel vs Contentful) — read this first
+
+This is a Vercel web app, but it still needs a Contentful space. Those are two different things, and
+knowing why up front makes the rest of the steps obvious:
+
+- **Vercel = where the code runs (compute).** It serves the UI and the `/api/...` functions. Vercel
+  functions are **stateless** — each request runs and disappears, storing nothing between requests.
+  Vercel itself has **no database**.
+- **Contentful "governance space" = where the app stores its data.** Because the app's job is to manage
+  *your Contentful org* (spaces, roles, members), it's already talking to Contentful — so instead of
+  making you stand up a separate database, it stores its own records (deny policies, delegated-admin
+  lists, audit log) as entries in **one** Contentful space you set aside for it. **No external DB.**
+
+| Piece | Role |
+|---|---|
+| **Vercel** | Runs the app's code (pages + API) — the compute/host |
+| **Governance space** (one Contentful space) | The app's **database** — holds its policies/config/audit |
+| **Your other Contentful spaces** | The content the app **governs** (deny rules, members, roles) |
+
+So you'll deploy the code to Vercel **and** point it at one Contentful space to use as storage
+(`CF_GOVERNANCE_SPACE_ID`, Step 2). That space is the app's back office — separate from the content
+spaces you govern, and you only set it up **once** per deployment.
+
 ## Prerequisites
 
 - Contentful **Org Admin/Owner** access to the target org.
@@ -29,9 +52,16 @@ In Contentful → **Account settings → Tokens → Personal Access Tokens**, cr
 
 > Production hardening: prefer a **dedicated service-identity user** (not a person's PAT) so access survives staff changes and can be revoked independently.
 
-## Step 2 — Pick/create the governance space
+## Step 2 — Pick/create the governance space (the app's database)
 
-This app stores deny policies, per-space config, and the audit log as entries in one **governance space** (no external DB). Choose an existing empty space or create a new one, and note its space ID for `CF_GOVERNANCE_SPACE_ID`.
+This is the one-time choice of a single space to act as the **app's storage** — see
+[How it's wired](#how-its-wired-vercel-vs-contentful--read-this-first) above. The app has no external
+database; it stores deny policies, per-space config, and the audit log as entries here. This space is
+**separate from the content spaces you govern**, and you need exactly **one** for the whole org no
+matter how many spaces you govern.
+
+Choose an existing **empty** space or create a new one (you don't have to create one if you already
+have a spare), and note its space ID for `CF_GOVERNANCE_SPACE_ID`.
 
 You do **not** need to provision its content model from a terminal — after deploying (Steps 4–5), the **Setup & Health** card in `/console` has a **"Provision content model"** button that creates the `denyPolicy`, `spaceGovernance`, and `auditEvent` content types in-app. The whole install is browser-only.
 
