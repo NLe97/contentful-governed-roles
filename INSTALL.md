@@ -38,6 +38,33 @@ So you'll deploy the code to Vercel **and** point it at one Contentful space to 
 (`CF_GOVERNANCE_SPACE_ID`, Step 2). That space is the app's back office — separate from the content
 spaces you govern, and you only set it up **once** per deployment.
 
+### Why a governance space at all? (if you're already governing other spaces)
+
+Fair question: the roles and memberships the app manages already live **natively** in your governed
+spaces — so why does it need its *own* space too? Because the governed spaces store the **enforcement**
+(the result), but they have nowhere to store the **intent and bookkeeping** behind it, and Contentful
+has no native field for that. Governing a space is like setting the locks on its doors; the governance
+space is the building manager's **logbook** — what the locks themselves can't express.
+
+Each of the app's three content types holds something Contentful can't store natively:
+
+| Type | What it stores | Why a governed space can't hold it |
+|---|---|---|
+| `spaceGovernance` | Who is a **delegated** Space Admin / Inviter per space, which policy is applied, rollout status | Contentful has built-in admins/roles but **no concept of "delegated" access** — "this org member may manage space Y *through the app* without being a real Contentful admin." No native field says that. |
+| `denyPolicy` | Named, reusable deny-rule definitions | The deny rule is baked into each space's **role policy**, but there's no native home for the **reusable named policy** to apply consistently across many spaces. |
+| `auditEvent` | A log of governance actions (who did what, to which space, when) | Contentful has no queryable history of **the app's** governance actions. |
+
+This is also what several features structurally depend on:
+
+- **Delegation** — on sign-in the app decides "are you an Org Admin / delegated Space Admin / Inviter, and for which spaces?" That mapping lives **only** in `spaceGovernance`. The roles/memberships in a governed space can't tell you who is *delegated*.
+- **Drift detection** — the webhook + daily cron revert unauthorized changes by comparing reality to the **intended** state ("this team should be attached here," "this space is governed with policy P"). A governed space only holds *current* reality, not *intent* — the desired state needs a home.
+- **Audit trail** — same: there's no native log of these specific actions.
+
+In short: **the governed spaces hold the result; the governance space holds the reasons and the
+memory.** Remove it and the app can still flip a role on/off, but it can't remember *who's allowed to do
+what*, *why*, or *what changed* — which is most of what makes it a governance tool. (See also Step 2:
+the app writes content types and entries **only** in this one space, never in your governed spaces.)
+
 ## Prerequisites
 
 - Contentful **Org Admin/Owner** access to the target org.
@@ -61,7 +88,11 @@ database; it stores deny policies, per-space config, and the audit log as entrie
 matter how many spaces you govern.
 
 Choose an existing **empty** space or create a new one (you don't have to create one if you already
-have a spare), and note its space ID for `CF_GOVERNANCE_SPACE_ID`.
+have a spare), and note its space ID for `CF_GOVERNANCE_SPACE_ID`. A dedicated empty space is
+recommended so its footprint stays obvious. The app creates its content types and entries **only in
+this space** — your governed (content) spaces never receive governance content types, audit entries, or
+any content; there the app only manages roles and memberships. (For *why* a separate space is needed at
+all, see [Why a governance space at all?](#why-a-governance-space-at-all-if-youre-already-governing-other-spaces).)
 
 You do **not** need to provision its content model from a terminal — after deploying (Steps 4–5), the **Setup & Health** card in `/console` has a **"Provision content model"** button that creates the `denyPolicy`, `spaceGovernance`, and `auditEvent` content types in-app. The whole install is browser-only.
 
