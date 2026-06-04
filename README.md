@@ -93,7 +93,8 @@ npm run dev                   # then sign in at http://localhost:3000/
 
 > Use **Node 20** (`nvm use`). For a full production deploy to Vercel — OAuth app, env vars in the
 > dashboard, the protection webhook, and importing existing space admins — follow **`INSTALL.md`**
-> end to end (~30 min). `DEMO.md` walks through proving the behavior.
+> end to end (~30 min). `DEMO.md` walks through proving the behavior. To point a local checkout at a
+> **different organization** for testing, see **[`docs/RETARGET-ORG.md`](docs/RETARGET-ORG.md)**.
 
 Before trusting role/membership behavior against a real org, run the probe scripts against a dev
 space: `npx tsx scripts/probe-1-role-deny.ts` (and `probe-2`, `probe-3`).
