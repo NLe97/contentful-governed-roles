@@ -18,6 +18,15 @@ For **testing** you do *not* need the OAuth variables. Instead use the **cookie 
 browser cookie `cf_user_token` to your PAT and the app treats you as that signed-in user. (For a
 real production login flow, set up OAuth per [`INSTALL.md`](../INSTALL.md) Step 3.)
 
+> **Why a separate governance space (`CF_GOVERNANCE_SPACE_ID`)?** The governed spaces already store the
+> **enforcement** (roles, memberships) natively, but Contentful has no native place for the app's
+> **intent and bookkeeping**: who is a *delegated* Space Admin/Inviter per space (`spaceGovernance`),
+> reusable named deny policies (`denyPolicy`), and the action log (`auditEvent`). Those drive the
+> delegation, drift-detection, and audit features. The app creates content types and entries **only in
+> this one space** — your governed (content) spaces never receive governance types, audit entries, or
+> any content. Use a **dedicated empty** space so its footprint stays obvious. Full explanation:
+> [INSTALL.md → Why a governance space at all?](../INSTALL.md#why-a-governance-space-at-all-if-youre-already-governing-other-spaces).
+
 > All commands assume the project directory and Node 20:
 > ```bash
 > cd <repo>
