@@ -50,8 +50,23 @@ Both paths create missing content types and back-fill missing fields on existing
 
 Go directly to the OAuth applications page (it's hard to find in the UI — open the link):
 **https://app.contentful.com/account/profile/developers/applications** → **Create application**.
-- **Redirect URI:** `https://<your-vercel-domain>/auth/callback` (must match exactly; you can add `http://localhost:3000/auth/callback` for local testing).
-- Note the **Client ID**.
+- **Redirect URI:** this is your deployed app's callback URL — `https://<your-vercel-domain>/auth/callback`.
+  You'll know your exact Vercel domain only **after** the first deploy (Step 4), so the order is:
+  deploy → note the production domain → come back and set this redirect URI → also set the matching
+  `CF_OAUTH_REDIRECT_URI` env var (Step 6) → redeploy. See the **Redirect URI rules** box below.
+- Note the **Client ID** (you'll set it as `CF_OAUTH_CLIENT_ID`).
+
+> **Redirect URI rules — read this, it's the #1 OAuth gotcha**
+> - The redirect URI registered **here** in the OAuth app and the `CF_OAUTH_REDIRECT_URI` **env var**
+>   must be **byte-for-byte identical**, or Contentful rejects login with a redirect-mismatch error.
+> - **In production, use your Vercel domain:** `https://<your-vercel-domain>/auth/callback`
+>   (e.g. `https://contentful-governed-roles.vercel.app/auth/callback`). The Vercel deployment is
+>   already public HTTPS — you do **not** need ngrok or any tunnel.
+> - **For local development only**, `http://localhost:3000/auth/callback` usually works. If your setup
+>   needs a public HTTPS callback for localhost, an ngrok tunnel URL is a dev-only workaround — it is
+>   **not** used in production and should be removed from the OAuth app once you deploy.
+> - An OAuth app can list **multiple** redirect URIs, so you can keep both the localhost (dev) and the
+>   Vercel (prod) entries at the same time.
 
 ## Step 4 — Deploy to Vercel
 
@@ -62,6 +77,14 @@ npm i -g vercel
 vercel            # link/create the project
 vercel deploy --prod
 ```
+
+After this completes, note your **production domain** (the `Aliased`/Production URL Vercel prints,
+e.g. `https://contentful-governed-roles.vercel.app`). Use it for the redirect URI in Step 3 and for
+`CF_OAUTH_REDIRECT_URI` in Step 6.
+
+> **Vercel bakes env vars into a deployment at deploy time.** Changing an env var (like
+> `CF_OAUTH_REDIRECT_URI`) does **not** affect the running deployment — you must **redeploy**
+> (`vercel deploy --prod`) for the new value to take effect.
 
 `vercel.json` already declares the daily cron (`/api/cron/reconcile`).
 
@@ -83,14 +106,14 @@ Project → **Settings → Environment Variables** (Production):
 | `CF_GOVERNANCE_ENVIRONMENT_ID` | — | defaults to `master` |
 | `CF_PROTECTED_TEAM_ID` | ✅ | the "Org Admins" team to protect |
 | `CF_OAUTH_CLIENT_ID` | ✅ | the Step 3 Client ID |
-| `CF_OAUTH_REDIRECT_URI` | ✅ | `https://<your-vercel-domain>/auth/callback` |
+| `CF_OAUTH_REDIRECT_URI` | ✅ | `https://<your-vercel-domain>/auth/callback` — **must exactly match** the redirect URI registered in the Step 3 OAuth app (not ngrok, not localhost) |
 | `CF_WEBHOOK_SECRET` | ✅ (for webhook) | a strong random string |
 | `CRON_SECRET` | ✅ (for cron) | a strong random string (Vercel can generate one) |
 | `SCALE_ADMIN_EMAIL` | ❌ | dev/scale-test only (provisioning script) |
 
 > `ENABLE_DEMO` is no longer used — the console is gated by Contentful OAuth + Org-Admin, so it's safe in production without any flag.
 
-Redeploy after setting variables.
+**Redeploy after setting or changing any variable** (`vercel deploy --prod`, or trigger a redeploy in the dashboard) — env vars only take effect in a new deployment.
 
 ## Step 7 — Register the protection webhook (recommended)
 
